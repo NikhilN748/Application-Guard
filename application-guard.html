@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Application Guard</title>
+<style>
+  :root {
+    --bg: #F2F8FC;
+    --panel: #ffffff;
+    --panel-soft: #f9fafb;
+    --board-box-1: #FFFFF0;
+    --board-box-2: #FCFCF7;
+    --board-box-3: #F4F1F8;
+    --board-box-4: #F8F7F4;
+    --board-box-5: #FFFAFA;
+    --text: #111827;
+    --muted: #6b7280;
+    --soft: #9ca3af;
+    --line: #e5e7eb;
+    --line-dark: #d1d5db;
+    --accent: #2563eb;
+    --accent-soft: #eff6ff;
+    --accent-text: #1d4ed8;
+    --success: #0f9f6e;
+    --success-soft: #ecfdf5;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --warning: #b45309;
+    --warning-soft: #fffbeb;
+    --shadow: 0 16px 40px rgba(15, 23, 42, .08);
+    --radius: 18px;
+    --radius-sm: 12px;
+    --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: var(--font);
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.45;
+  }
+  button, input, select, textarea { font: inherit; }
+  button { cursor: pointer; }
+  .app {
+    width: min(1680px, calc(100vw - 44px));
+    max-width: none;
+    margin: 0 auto;
+    padding: 24px 0 72px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .logo {
+    width: 38px; height: 38px; border-radius: 12px;
+    display: grid; place-items: center;
+    background: var(--text); color: #fff;
+    font-weight: 800; letter-spacing: -.04em;
+  }
+  .brand h1 { margin: 0; font-size: 1.15rem; letter-spacing: -.03em; }
+  .brand p { margin: 2px 0 0; color: var(--muted); font-size: .88rem; }
+  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .window-control {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,.82);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: .86rem;
+  }
+  .window-control input {
+    width: 58px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--panel-soft);
+    padding: 5px 8px;
+    text-align: center;
+    color: var(--text);
+  }
+
+  .btn {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 10px 15px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform .08s ease, box-shadow .15s ease, background .15s ease;
+  }
+  .btn:hover { background: #1d4ed8; box-shadow: 0 10px 20px rgba(37, 99, 235, .18); }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary {
+    color: var(--text);
+    background: var(--panel);
+    border-color: var(--line);
+  }
+  .btn.secondary:hover { background: var(--panel-soft); box-shadow: none; }
+  .btn.danger {
+    color: var(--danger);
+    background: var(--danger-soft);
+    border-color: #fecaca;
+  }
+  .btn.slim { padding: 7px 11px; font-size: .84rem; }
+  .btn.full { width: 100%; border-radius: 12px; }
+
+  .card {
+    background: rgba(255,255,255,.92);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .check-card { padding: 18px; margin-bottom: 16px; }
+  .check-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .check-head h2 { margin: 0; font-size: 1.25rem; letter-spacing: -.03em; }
+  .check-head p { margin: 4px 0 0; color: var(--muted); font-size: .92rem; max-width: 68ch; }
+  .check-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(150px, 1fr)) auto;
+    gap: 10px;
+    align-items: end;
+  }
+  label { display: block; font-size: .78rem; color: var(--muted); font-weight: 700; margin: 0 0 6px; }
+  input, select, textarea {
+    width: 100%;
+    border: 1px solid var(--line-dark);
+    border-radius: 12px;
+    background: var(--panel);
+    color: var(--text);
+    padding: 10px 11px;
+    outline: none;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, .12);
+  }
+  textarea { min-height: 74px; resize: vertical; }
+  .suggest-wrap { position: relative; }
+  .suggestions {
+    position: absolute;
+    z-index: 30;
+    left: 0; right: 0; top: calc(100% + 6px);
+    display: none;
+    max-height: 250px;
+    overflow: auto;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 6px;
+  }
+  .suggestions.show { display: block; }
+  .suggestion-item {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    width: 100%;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: left;
+  }
+  .suggestion-item:hover, .suggestion-item:focus-visible { background: var(--panel-soft); outline: none; }
+  .suggestion-client { display: block; font-weight: 800; }
+  .suggestion-meta { display: block; color: var(--muted); font-size: .8rem; margin-top: 2px; }
+
+  .verdict {
+    display: none;
+    margin-top: 14px;
+    border-radius: 16px;
+    padding: 15px;
+    border: 1px solid var(--line);
+    background: var(--panel-soft);
+  }
+  .verdict.show { display: block; }
+  .verdict.clear { background: var(--success-soft); border-color: #bbf7d0; }
+  .verdict.block { background: var(--danger-soft); border-color: #fecaca; }
+  .verdict.info { background: var(--accent-soft); border-color: #bfdbfe; }
+  .verdict-title { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 1rem; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--soft); }
+  .clear .dot { background: var(--success); }
+  .block .dot { background: var(--danger); }
+  .info .dot { background: var(--accent); }
+  .verdict p { margin: 8px 0 0; color: var(--muted); }
+  .history-list { display: grid; gap: 8px; margin-top: 12px; }
+  .history-item {
+    background: rgba(255,255,255,.75);
+    border: 1px solid rgba(0,0,0,.06);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .history-item b { display: block; }
+  .history-item span { display: block; color: var(--muted); font-size: .82rem; margin-top: 2px; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat {
+    padding: 13px 14px;
+    background: rgba(255,255,255,.86);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+  }
+  .stat b { display: block; font-size: 1.35rem; letter-spacing: -.04em; }
+  .stat span { display: block; margin-top: 2px; font-size: .78rem; color: var(--muted); font-weight: 700; }
+  .stat.alert b { color: var(--danger); }
+
+  .workspace { padding: 18px; }
+  .work-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .tabs {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+    background: var(--panel-soft);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  .tab {
+    border: 0;
+    border-radius: 999px;
+    padding: 8px 13px;
+    background: transparent;
+    color: var(--muted);
+    font-weight: 800;
+  }
+  .tab.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(15,23,42,.08); }
+  .tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: 1 1 620px; }
+  .tools select { width: 170px; }
+  .search { width: clamp(320px, 36vw, 620px); }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .board-toolbar, .view-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 0 0 12px;
+  }
+  .board-toolbar label, .view-toolbar label {
+    margin: 0;
+    color: var(--muted);
+    font-size: .82rem;
+  }
+  .board-toolbar select, .view-toolbar select {
+    width: 180px;
+    padding: 8px 10px;
+    border-radius: 999px;
+  }
+
+  .board {
+    --board-cols: 2;
+    display: grid;
+    gap: 14px;
+    padding: 2px 2px 14px;
+    width: 100%;
+  }
+  .board.board-fit {
+    grid-template-columns: repeat(var(--board-cols), minmax(320px, 1fr));
+  }
+  .board.board-scroll {
+    grid-template-columns: repeat(var(--board-cols), minmax(340px, 360px));
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x proximity;
+    padding-bottom: 18px;
+  }
+  .board.board-scroll .board-status-section { scroll-snap-align: start; }
+  .board::-webkit-scrollbar { height: 10px; }
+  .board::-webkit-scrollbar-track { background: rgba(148,163,184,.18); border-radius: 999px; }
+  .board::-webkit-scrollbar-thumb { background: rgba(100,116,139,.38); border-radius: 999px; }
+  .board-status-section {
+    background: rgba(255,255,255,.48);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 12px;
+    min-height: 220px;
+  }
+  .board-status-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: .82rem;
+    font-weight: 900;
+    margin-bottom: 10px;
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 1;
+  }
+  .board-column-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .count { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 2px 7px; color: var(--text); }
+
+  .job-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 11px;
+  }
+  .board-column-list .job-card:nth-child(5n + 1) { background: var(--board-box-1); }
+  .board-column-list .job-card:nth-child(5n + 2) { background: var(--board-box-2); }
+  .board-column-list .job-card:nth-child(5n + 3) { background: var(--board-box-3); }
+  .board-column-list .job-card:nth-child(5n + 4) { background: var(--board-box-4); }
+  .board-column-list .job-card:nth-child(5n + 5) { background: var(--board-box-5); }
+  .empty-col {
+    border: 1px dashed var(--line);
+    border-radius: 14px;
+    padding: 18px 12px;
+    color: var(--muted);
+    background: rgba(255,255,255,.35);
+    font-size: .86rem;
+    text-align: center;
+  }
+  .job-card h3 { margin: 0; font-size: .95rem; letter-spacing: -.02em; line-height: 1.25; }
+  .job-card .title { color: var(--muted); font-size: .82rem; margin-top: 3px; line-height: 1.35; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 999px;
+    padding: 4px 8px;
+    background: var(--panel-soft);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-size: .74rem;
+    font-weight: 800;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .chip.clear { color: var(--success); background: var(--success-soft); border-color: #bbf7d0; }
+  .chip.warn { color: var(--warning); background: var(--warning-soft); border-color: #fde68a; }
+  .chip.lock { color: var(--danger); background: var(--danger-soft); border-color: #fecaca; }
+  .card-actions { display: flex; gap: 6px; margin-top: 11px; }
+  .tiny-btn {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    color: var(--muted);
+    padding: 6px 8px;
+    font-size: .78rem;
+    font-weight: 800;
+  }
+  .tiny-btn:hover { background: var(--panel-soft); color: var(--text); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; }
+  table { width: 100%; min-width: 1080px; border-collapse: collapse; font-size: .9rem; background: var(--panel); table-layout: fixed; }
+  th, td { text-align: left; padding: 12px 13px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-size: .76rem; font-weight: 900; white-space: nowrap; }
+  th button { border: 0; background: transparent; padding: 0; color: inherit; font-weight: inherit; }
+  tbody tr:hover td { background: var(--panel-soft); }
+  tbody tr:last-child td { border-bottom: 0; }
+  .primary-cell b { display: block; }
+  .primary-cell span { display: block; color: var(--muted); font-size: .8rem; margin-top: 2px; }
+  .muted-line { color: var(--muted); font-size: .82rem; line-height: 1.35; }
+  .clip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; display: block; }
+  .client-col { width: 24%; }
+  .position-col { width: 24%; }
+  .links-col { width: 18%; }
+  .date-col { width: 9%; }
+  .status-col { width: 11%; }
+  .risk-col { width: 8%; }
+  .actions-col { width: 9%; }
+  .link-stack { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .link-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid #bfdbfe;
+    background: var(--accent-soft);
+    color: var(--accent-text);
+    font-size: .78rem;
+    font-weight: 900;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .link-pill:hover { background: #dbeafe; border-color: #93c5fd; }
+  .text-link { color: var(--accent-text); text-decoration: none; font-weight: 700; }
+  .text-link:hover { text-decoration: underline; }
+  .link-pill.muted { background: var(--panel-soft); border-color: var(--line); color: var(--muted); }
+  .link-note { margin-top: 6px; color: var(--muted); font-size: .76rem; line-height: 1.3; }
+  .date-cell { white-space: nowrap; }
+  .clip-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mono { font-family: var(--mono); font-size: .82rem; }
+  .status-select { min-width: 120px; padding: 7px 9px; border-radius: 10px; }
+  .row-actions { display: flex; gap: 6px; }
+  .empty {
+    display: none;
+    padding: 46px 20px;
+    color: var(--muted);
+    text-align: center;
+    background: var(--panel);
+    border: 1px dashed var(--line-dark);
+    border-radius: 16px;
+  }
+
+  .client-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+    gap: 10px;
+  }
+  .client-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 13px;
+    cursor: pointer;
+    transition: border-color .15s ease, box-shadow .15s ease, transform .08s ease, background .15s ease;
+  }
+  .client-card:hover,
+  .client-card:focus-visible {
+    outline: none;
+    border-color: #bfdbfe;
+    box-shadow: 0 10px 24px rgba(37, 99, 235, .08);
+  }
+  .client-card:active { transform: translateY(1px); }
+  .client-card.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .client-card h3 { margin: 0; font-size: 1rem; }
+  .client-card p { margin: 6px 0 0; color: var(--muted); font-size: .86rem; }
+  .client-click-hint { color: var(--accent-text) !important; font-weight: 800; font-size: .78rem !important; }
+  .client-detail {
+    display: none;
+    margin-top: 16px;
+    background: var(--panel-soft);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .client-detail-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .client-detail-head h3 { margin: 0; font-size: 1.05rem; }
+  .client-detail-head p { margin: 3px 0 0; color: var(--muted); font-size: .86rem; }
+  .client-jobs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 10px;
+  }
+  .client-job-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+  }
+  .client-job-card h4 { margin: 0; font-size: .95rem; line-height: 1.25; }
+  .client-job-card p { margin: 6px 0 0; color: var(--muted); font-size: .84rem; }
+
+  .backup-bar {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    color: var(--muted);
+    font-size: .84rem;
+  }
+  .file-btn input { display: none; }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(17,24,39,.46);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    width: min(760px, 100%);
+    max-height: calc(100vh - 40px);
+    overflow: auto;
+    background: var(--panel);
+    border-radius: 22px;
+    box-shadow: 0 26px 80px rgba(0,0,0,.25);
+    border: 1px solid var(--line);
+  }
+  .modal-head {
+    position: sticky;
+    top: 0;
+    background: rgba(255,255,255,.94);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 18px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    z-index: 1;
+  }
+  .modal-head h2 { margin: 0; font-size: 1.1rem; }
+  .modal-body { padding: 18px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid .wide { grid-column: 1 / -1; }
+  details.more {
+    margin-top: 14px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 10px 12px 12px;
+    background: var(--panel-soft);
+  }
+  details.more summary { font-weight: 900; color: var(--muted); cursor: pointer; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .form-note { margin: 8px 0 0; min-height: 1em; color: var(--muted); font-size: .86rem; }
+
+  @media (max-width: 980px) {
+    .check-grid { grid-template-columns: 1fr 1fr; }
+    .check-grid .check-button { grid-column: 1 / -1; }
+    .stats { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+  }
+  @media (max-width: 680px) {
+    .app { width: calc(100vw - 24px); padding: 18px 0 60px; }
+    .topbar { align-items: flex-start; flex-direction: column; }
+    .top-actions { width: 100%; justify-content: flex-start; }
+    .check-head { flex-direction: column; }
+    .check-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .work-head { align-items: stretch; }
+    .tabs, .tools, .search, .tools select, .tools .btn, .board-toolbar, .board-toolbar select, .view-toolbar, .view-toolbar select { width: 100%; }
+    .tabs { justify-content: space-between; }
+    .board-toolbar, .view-toolbar { justify-content: flex-start; flex-wrap: wrap; }
+    .tab { flex: 1; }
+    .form-grid { grid-template-columns: 1fr; }
+    .modal-backdrop { padding: 0; align-items: stretch; }
+    .modal { width: 100%; max-height: 100vh; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">AG</div>
+      <div>
+        <h1>Application Guard</h1>
+        <p>Check duplicate risk first. Track every application after.</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <label class="window-control">Window <input id="windowDays" type="number" min="1" aria-label="Clearance window in days"> days</label>
+      <button class="btn" onclick="openModal()">+ Add application</button>
+    </div>
+  </header>
+
+  <section class="card check-card" aria-label="Clearance check">
+    <div class="check-head">
+      <div>
+        <h2>Check before applying</h2>
+        <p>Enter the client and the details you plan to use. The app warns when the same client is already inside your saved window with a different role, resume, or location.</p>
+      </div>
+    </div>
+    <div class="check-grid">
+      <div class="suggest-wrap">
+        <label for="checkName">Client / company</label>
+        <input id="checkName" placeholder="Start typing a client" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="checkSuggestions">
+        <div id="checkSuggestions" class="suggestions" role="listbox"></div>
+      </div>
+      <div>
+        <label for="checkRole">Role</label>
+        <select id="checkRole"></select>
+      </div>
+      <div>
+        <label for="checkResume">Resume</label>
+        <input id="checkResume" placeholder="Resume link or file" autocomplete="off">
+      </div>
+      <div>
+        <label for="checkMyLocation">My location</label>
+        <input id="checkMyLocation" placeholder="Address used" autocomplete="off">
+      </div>
+      <div class="check-button">
+        <label aria-hidden="true">&nbsp;</label>
+        <button class="btn full" onclick="runCheck()">Check</button>
+      </div>
+    </div>
+    <div id="verdict" class="verdict" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="stats" id="stats" aria-label="Application stats"></section>
+
+  <main class="card workspace">
+    <div class="work-head">
+      <div class="tabs" role="tablist" aria-label="Views">
+        <button class="tab" data-view="boardView" onclick="switchView('boardView')">Board</button>
+        <button class="tab active" data-view="ledgerView" onclick="switchView('ledgerView')">Ledger</button>
+        <button class="tab" data-view="clientsView" onclick="switchView('clientsView')">Clients</button>
+      </div>
+      <div class="tools">
+        <input id="search" class="search" placeholder="Search client, title, resume, location..." oninput="render()" aria-label="Search applications">
+        <select id="filterRole" onchange="render()" aria-label="Filter by role"></select>
+        <select id="filterStatus" onchange="render()" aria-label="Filter by status"></select>
+      </div>
+    </div>
+
+    <section id="boardView" class="view" aria-label="Board view">
+      <div class="board-toolbar">
+        <label for="boardSort">Sort board</label>
+        <select id="boardSort" onchange="renderBoard()" aria-label="Sort board by applied date">
+          <option value="dateDesc">Newest first</option>
+          <option value="dateAsc">Oldest first</option>
+        </select>
+      </div>
+      <div id="board" class="board"></div>
+      <div id="emptyBoard" class="empty">No applications match this view.</div>
+    </section>
+
+    <section id="ledgerView" class="view active" aria-label="Ledger view">
+      <div class="view-toolbar">
+        <label for="ledgerSort">Sort ledger</label>
+        <select id="ledgerSort" onchange="renderLedger()" aria-label="Sort ledger by applied date">
+          <option value="dateDesc">Newest first</option>
+          <option value="dateAsc">Oldest first</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <colgroup>
+            <col class="client-col">
+            <col class="position-col">
+            <col class="links-col">
+            <col class="date-col">
+            <col class="status-col">
+            <col class="risk-col">
+            <col class="actions-col">
+          </colgroup>
+          <thead>
+            <tr>
+              <th><button data-sort="client" onclick="sortBy('client')">Client</button></th>
+              <th><button data-sort="title" onclick="sortBy('title')">Position</button></th>
+              <th>Links</th>
+              <th><button data-sort="date" onclick="sortBy('date')">Applied</button></th>
+              <th>Status</th>
+              <th>Risk</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="emptyLedger" class="empty">No applications match this view.</div>
+    </section>
+
+    <section id="clientsView" class="view" aria-label="Client summary">
+      <div class="view-toolbar">
+        <label for="clientSort">Sort clients</label>
+        <select id="clientSort" onchange="renderClients()" aria-label="Sort clients alphabetically">
+          <option value="az">A to Z</option>
+          <option value="za">Z to A</option>
+        </select>
+      </div>
+      <div id="clientGrid" class="client-grid"></div>
+      <div id="emptyClients" class="empty">No clients yet.</div>
+      <div id="clientDetail" class="client-detail"></div>
+    </section>
+
+    <div class="backup-bar">
+      <button class="btn secondary slim" onclick="exportData()">Export backup</button>
+      <label class="btn secondary slim file-btn">Import backup <input type="file" id="importFile" accept="application/json" onchange="importData(event)"></label>
+      <button class="btn secondary slim" onclick="exportCSV()">Export CSV</button>
+      <span>Data is stored only in this browser. Export a backup regularly.</span>
+    </div>
+  </main>
+</div>
+
+<div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">Add application</h2>
+      <button class="btn secondary slim" onclick="closeModal()">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="suggest-wrap wide">
+          <label for="f_client">Client / company *</label>
+          <input id="f_client" placeholder="Client name" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="logSuggestions">
+          <div id="logSuggestions" class="suggestions" role="listbox"></div>
+        </div>
+        <div>
+          <label for="f_title">Position title</label>
+          <input id="f_title" placeholder="Backend Engineer II" autocomplete="off">
+        </div>
+        <div>
+          <label for="f_role">Role type *</label>
+          <select id="f_role"></select>
+        </div>
+        <div>
+          <label for="f_resume">Resume link / file</label>
+          <input id="f_resume" placeholder="file:///C:/Resumes/Nikhil_Resume.html" autocomplete="off">
+          <div class="link-note">Paste your resume HTML/file link here. It will become an Open resume button.</div>
+        </div>
+        <div>
+          <label for="f_date">Date applied *</label>
+          <input id="f_date" type="date">
+        </div>
+        <div>
+          <label for="f_status">Status</label>
+          <select id="f_status"></select>
+        </div>
+      </div>
+
+      <details class="more">
+        <summary>More details</summary>
+        <div class="form-grid" style="margin-top:12px;">
+          <div>
+            <label for="f_posid">Position ID</label>
+            <input id="f_posid" placeholder="REQ-10482" autocomplete="off">
+          </div>
+          <div>
+            <label for="f_portal">Job posting link / portal</label>
+            <input id="f_portal" placeholder="https://company.com/jobs/REQ-10482" autocomplete="off">
+            <div class="link-note">Paste the job posting URL here. It will become an Open job button.</div>
+          </div>
+          <div>
+            <label for="f_myLocation">My location</label>
+            <input id="f_myLocation" placeholder="Address used on application" autocomplete="off">
+          </div>
+          <div>
+            <label for="f_jobLocation">Job posting location</label>
+            <input id="f_jobLocation" placeholder="Atlanta, GA / Remote" autocomplete="off">
+          </div>
+          <div class="wide">
+            <label for="f_notes">Notes</label>
+            <textarea id="f_notes" placeholder="Recruiter, referral, salary range, follow-up notes"></textarea>
+          </div>
+        </div>
+      </details>
+
+      <p id="formMsg" class="form-note"></p>
+      <div class="modal-actions">
+        <button id="deleteEditBtn" class="btn danger" onclick="deleteCurrentEdit()" style="display:none;">Delete</button>
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button id="saveBtn" class="btn" onclick="saveApplication()">Save application</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE_KEY = "jobTrackerApps_v1";
+const WINDOW_KEY = "jobTrackerWindow_v1";
+const KNOWN_ROLES = ["Software Engineer", "Network Engineer", "DevOps", "Other"];
+const KNOWN_STATUSES = ["Applied", "Screening", "Interview", "Offer", "Rejected", "Withdrawn"];
+
+let apps = load();
+let windowDays = loadWindow();
+let sort = { key: "date", dir: -1 };
+let editingId = null;
+let activeView = "ledgerView";
+let selectedClientKey = "";
+
+function $(id) { return document.getElementById(id); }
+
+function init() {
+  fillSelect("checkRole", KNOWN_ROLES, false);
+  fillSelect("f_role", KNOWN_ROLES, false);
+  fillSelect("f_status", KNOWN_STATUSES, false);
+  fillSelect("filterRole", KNOWN_ROLES, true, "All roles");
+  fillSelect("filterStatus", KNOWN_STATUSES, true, "All statuses");
+  $("windowDays").value = windowDays;
+  $("windowDays").addEventListener("change", setWindow);
+  $("f_date").value = todayString();
+  bindClientSuggest("checkName", "checkSuggestions", "checkMyLocation");
+  bindClientSuggest("f_client", "logSuggestions", "f_myLocation");
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".suggest-wrap")) hideSuggestions();
+    if (e.target.id === "modalBackdrop") closeModal();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { hideSuggestions(); closeModal(); }
+  });
+  render();
+}
+
+function fillSelect(id, values, includeAll, allText) {
+  const el = $(id);
+  el.innerHTML = "";
+  if (includeAll) el.appendChild(new Option(allText || "All", ""));
+  for (const v of values) el.appendChild(new Option(v, v));
+}
+
+function load() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORE_KEY)) || [];
+    if (!Array.isArray(data)) return [];
+    const ids = new Set();
+    return data.map(d => sanitizeRecord(d, ids)).filter(Boolean);
+  } catch { return []; }
+}
+function save() { localStorage.setItem(STORE_KEY, JSON.stringify(apps)); }
+function loadWindow() {
+  const v = parseInt(localStorage.getItem(WINDOW_KEY), 10);
+  return Number.isFinite(v) && v > 0 ? v : 60;
+}
+function setWindow() {
+  const v = parseInt($("windowDays").value, 10);
+  if (!Number.isFinite(v) || v < 1) { $("windowDays").value = windowDays; return; }
+  windowDays = v;
+  localStorage.setItem(WINDOW_KEY, String(v));
+  render();
+}
+function sanitizeRecord(d, ids) {
+  if (!d || typeof d !== "object") return null;
+  let id = d.id || genId();
+  while (ids.has(id)) id = genId();
+  ids.add(id);
+  const status = KNOWN_STATUSES.includes(d.status) ? d.status : "Applied";
+  const role = KNOWN_ROLES.includes(d.role) ? d.role : "Other";
+  return {
+    id,
+    client: clean(d.client),
+    role,
+    title: clean(d.title),
+    posid: clean(d.posid),
+    resume: clean(d.resume),
+    portal: clean(d.portal),
+    myLocation: clean(d.myLocation),
+    jobLocation: clean(d.jobLocation),
+    date: parseDateOnly(d.date) ? d.date : todayString(),
+    notes: clean(d.notes),
+    status
+  };
+}
+function clean(v) { return (v || "").toString().trim(); }
+function genId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return "id-" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+function todayString() { return new Date().toISOString().slice(0, 10); }
+function parseDateOnly(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s || "")) return null;
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt && dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d ? dt : null;
+}
+function addDays(dateStr, days) {
+  const d = parseDateOnly(dateStr);
+  if (!d) return "";
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+function daysBetween(a, b) { return Math.floor((a - b) / 86400000); }
+function normalize(name) {
+  return (name || "")
+    .toLowerCase()
+    .replace(/[.,]/g, " ")
+    .replace(/\b(inc|llc|ltd|corp|corporation|co|company|technologies|technology|tech|solutions|systems|group|pvt|private|limited)\b/g, " ")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function normValue(v) { return (v || "").toString().toLowerCase().replace(/\s+/g, " ").trim(); }
+function esc(s) {
+  return (s || "").toString().replace(/[&<>'"]/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
+}
+function safeDecode(v) {
+  try { return decodeURIComponent((v || "").toString()); } catch { return (v || "").toString(); }
+}
+function shortFileName(v) {
+  let s = safeDecode(v).replace(/^file:\/\/\//i, "").replace(/\\/g, "/").trim();
+  if (!s) return "";
+  s = s.split(/[?#]/)[0];
+  const parts = s.split("/").filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : s;
+}
+function shortResume(v) {
+  const name = shortFileName(v);
+  if (!name) return "";
+  return name.replace(/_/g, " ").replace(/\.html?$/i, "").trim();
+}
+function shortPortal(v) {
+  const raw = (v || "").toString().trim();
+  if (!raw) return "No portal saved";
+  try {
+    const u = new URL(raw);
+    return u.hostname.replace(/^www\./, "");
+  } catch {
+    const name = shortFileName(raw);
+    if (/\.html?$/i.test(name)) return "Saved posting file";
+    return name || raw;
+  }
+}
+function shortLocation(v) {
+  const s = safeDecode(v).trim();
+  if (!s) return "";
+  return s.length > 48 ? s.slice(0, 45) + "..." : s;
+}
+function displayTitle(a) {
+  return a.title || a.role || "No title saved";
+}
+function linkHref(v) {
+  const raw = safeDecode(v).trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw);
+    if (["http:", "https:", "file:"].includes(u.protocol)) return u.href;
+  } catch {}
+  if (/^[a-zA-Z]:[\/]/.test(raw)) {
+    return encodeURI("file:///" + raw.replace(/\\/g, "/"));
+  }
+  if (/^(\.\/|\.\.\/|\/)/.test(raw)) return encodeURI(raw);
+  return "";
+}
+function linkLabel(v, fallback) {
+  const raw = safeDecode(v).trim();
+  if (!raw) return fallback;
+  try {
+    const u = new URL(raw);
+    if (u.protocol === "http:" || u.protocol === "https:") return u.hostname.replace(/^www\./, "");
+    if (u.protocol === "file:") return shortFileName(raw) || fallback;
+  } catch {}
+  const name = shortFileName(raw);
+  return name || raw || fallback;
+}
+function openLink(label, value, fallbackText) {
+  const href = linkHref(value);
+  const title = safeDecode(value).trim();
+  if (!href) return `<span class="link-pill muted" title="${esc(title || fallbackText)}">${esc(fallbackText)}</span>`;
+  return `<a class="link-pill" href="${esc(href)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="${esc(title)}">${esc(label)}</a>`;
+}
+function resumeLink(a) {
+  return openLink("Open resume", a.resume, "No resume link");
+}
+function jobLink(a) {
+  return openLink("Open job", a.portal, "No job link");
+}
+function portalDisplay(a) {
+  const href = linkHref(a.portal);
+  const label = shortPortal(a.portal);
+  const id = a.posid ? ` | ID ${a.posid}` : "";
+  if (!href) return `${esc(label)}${esc(id)}`;
+  return `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="text-link" title="${esc(safeDecode(a.portal))}">${esc(label)}</a>${esc(id)}`;
+}
+
+function clientApps(clientName, excludeId) {
+  const key = normalize(clientName);
+  if (!key) return [];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const out = [];
+  for (const a of apps) {
+    if (a.id === excludeId) continue;
+    if (normalize(a.client) !== key) continue;
+    const d = parseDateOnly(a.date); if (!d) continue;
+    const ago = daysBetween(today, d);
+    if (ago >= 0 && ago < windowDays) out.push({ ...a, ago, clearsIn: windowDays - ago });
+  }
+  return out.sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : 0));
+}
+function conflictReasons(a, role, resume, myLocation) {
+  const reasons = [];
+  if ((a.role || "") !== (role || "")) reasons.push("role");
+  if (resume && a.resume && normValue(a.resume) !== normValue(resume)) reasons.push("resume");
+  if (myLocation && a.myLocation && normValue(a.myLocation) !== normValue(myLocation)) reasons.push("my location");
+  return reasons;
+}
+function evaluate(clientName, role, resume, myLocation, excludeId) {
+  const inWin = clientApps(clientName, excludeId);
+  if (!inWin.length) return { status: "clear", apps: [] };
+  const diff = inWin
+    .map(a => ({ ...a, reasons: conflictReasons(a, role, resume, myLocation) }))
+    .filter(a => a.reasons.length);
+  if (diff.length) return { status: "block", apps: diff, clearsIn: diff[0].clearsIn };
+  return { status: "info", apps: inWin, clearsIn: inWin[0].clearsIn };
+}
+function clientWindowState(clientName) {
+  const inWin = clientApps(clientName);
+  if (!inWin.length) return { withinWindow: false };
+  const roles = new Set(inWin.map(a => a.role));
+  const myLocations = new Set(inWin.map(a => normValue(a.myLocation)).filter(Boolean));
+  const resumes = new Set(inWin.map(a => normValue(a.resume)).filter(Boolean));
+  return {
+    withinWindow: true,
+    clearsIn: inWin[0].clearsIn,
+    conflict: roles.size > 1 || myLocations.size > 1 || resumes.size > 1
+  };
+}
+function riskChip(a) {
+  const s = clientWindowState(a.client);
+  if (!s.withinWindow) return `<span class="chip clear">Clear</span>`;
+  if (s.conflict) return `<span class="chip lock">Conflict</span>`;
+  return `<span class="chip warn">${s.clearsIn}d left</span>`;
+}
+
+function runCheck() {
+  const name = $("checkName").value.trim();
+  const role = $("checkRole").value;
+  const resume = $("checkResume").value.trim();
+  const myLocation = $("checkMyLocation").value.trim();
+  const el = $("verdict");
+  if (!name) {
+    el.className = "verdict show";
+    el.innerHTML = `<div class="verdict-title"><span class="dot"></span>Enter a client first</div><p>Type the client name, then run the check.</p>`;
+    return;
+  }
+  const r = evaluate(name, role, resume, myLocation);
+  if (r.status === "block") {
+    const c = r.apps[0];
+    el.className = "verdict show block";
+    el.innerHTML = `
+      <div class="verdict-title"><span class="dot"></span>Blocked</div>
+      <p>You applied to <b>${esc(name)}</b> ${c.ago} day(s) ago. This check differs by <b>${esc(c.reasons.join(", "))}</b>. It clears on <b>${esc(addDays(c.date, windowDays))}</b>.</p>
+      ${historyHtml(r.apps)}`;
+  } else if (r.status === "info") {
+    el.className = "verdict show info";
+    el.innerHTML = `
+      <div class="verdict-title"><span class="dot"></span>On file</div>
+      <p>This client is already inside your ${windowDays}-day window, but this role, resume, and location do not create a new conflict based on saved records.</p>
+      ${historyHtml(r.apps)}`;
+  } else {
+    el.className = "verdict show clear";
+    el.innerHTML = `
+      <div class="verdict-title"><span class="dot"></span>Cleared</div>
+      <p>No saved application for <b>${esc(name)}</b> inside the last ${windowDays} days.</p>`;
+  }
+}
+function historyHtml(list) {
+  if (!list || !list.length) return "";
+  return `<div class="history-list">${list.map(a => `
+    <div class="history-item">
+      <b>${esc(a.client)} - ${esc(a.role)}${a.title ? " - " + esc(a.title) : ""}</b>
+      <span>${esc(a.date)}${a.resume ? " - " + esc(shortResume(a.resume)) : ""}${a.myLocation ? " - My: " + esc(shortLocation(a.myLocation)) : ""}${a.reasons ? " - Differs: " + esc(a.reasons.join(", ")) : ""}</span>
+    </div>`).join("")}</div>`;
+}
+
+function clientSuggestions(query) {
+  const key = normalize(query);
+  if (!key) return [];
+  const seen = new Set();
+  const out = [];
+  const sorted = [...apps].sort((x, y) => (x.date < y.date ? 1 : x.date > y.date ? -1 : 0));
+  for (const a of sorted) {
+    const clientKey = normalize(a.client);
+    if (!clientKey || !clientKey.startsWith(key)) continue;
+    const sig = [clientKey, normValue(a.myLocation), normValue(a.jobLocation)].join("|");
+    if (seen.has(sig)) continue;
+    seen.add(sig);
+    out.push({ client: a.client, myLocation: a.myLocation || "", jobLocation: a.jobLocation || "", date: a.date || "", resume: a.resume || "" });
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+function bindClientSuggest(inputId, boxId, myLocationId) {
+  const input = $(inputId);
+  const box = $(boxId);
+  const myLocationInput = myLocationId ? $(myLocationId) : null;
+  const show = () => {
+    const matches = clientSuggestions(input.value);
+    if (!matches.length) {
+      box.classList.remove("show");
+      input.setAttribute("aria-expanded", "false");
+      box.innerHTML = "";
+      return;
+    }
+    box._matches = matches;
+    box.innerHTML = matches.map((s, i) => {
+      const meta = [s.date ? `Last: ${s.date}` : "", s.resume ? `Resume: ${shortResume(s.resume)}` : "", s.myLocation ? `My: ${shortLocation(s.myLocation)}` : "", s.jobLocation ? `Job: ${shortLocation(s.jobLocation)}` : ""].filter(Boolean).join(" | ");
+      return `<button type="button" class="suggestion-item" role="option" data-index="${i}"><span class="suggestion-client">${esc(s.client)}</span>${meta ? `<span class="suggestion-meta">${esc(meta)}</span>` : ""}</button>`;
+    }).join("");
+    box.classList.add("show");
+    input.setAttribute("aria-expanded", "true");
+  };
+  input.addEventListener("input", show);
+  input.addEventListener("focus", show);
+  input.addEventListener("keydown", e => { if (e.key === "Escape") hideSuggestions(); });
+  box.addEventListener("mousedown", e => {
+    const btn = e.target.closest(".suggestion-item");
+    if (!btn) return;
+    e.preventDefault();
+    const s = box._matches && box._matches[Number(btn.dataset.index)];
+    if (!s) return;
+    input.value = s.client;
+    if (myLocationInput && s.myLocation) myLocationInput.value = s.myLocation;
+    hideSuggestions();
+    input.focus();
+  });
+}
+function hideSuggestions() { document.querySelectorAll(".suggestions").forEach(b => b.classList.remove("show")); }
+
+function openModal(id) {
+  editingId = id || null;
+  $("formMsg").textContent = "";
+  if (editingId) {
+    const a = apps.find(x => x.id === editingId);
+    if (!a) return;
+    $("modalTitle").textContent = "Edit application";
+    $("saveBtn").textContent = "Update application";
+    $("deleteEditBtn").style.display = "inline-flex";
+    setForm(a);
+  } else {
+    $("modalTitle").textContent = "Add application";
+    $("saveBtn").textContent = "Save application";
+    $("deleteEditBtn").style.display = "none";
+    clearForm();
+  }
+  $("modalBackdrop").classList.add("open");
+  setTimeout(() => $("f_client").focus(), 0);
+}
+function closeModal() {
+  $("modalBackdrop").classList.remove("open");
+  hideSuggestions();
+  editingId = null;
+}
+function clearForm() {
+  for (const id of ["f_client","f_title","f_posid","f_resume","f_portal","f_myLocation","f_jobLocation","f_notes"]) $(id).value = "";
+  $("f_role").value = "Software Engineer";
+  $("f_status").value = "Applied";
+  $("f_date").value = todayString();
+}
+function setForm(a) {
+  $("f_client").value = a.client || "";
+  $("f_title").value = a.title || "";
+  $("f_role").value = KNOWN_ROLES.includes(a.role) ? a.role : "Other";
+  $("f_resume").value = a.resume || "";
+  $("f_date").value = a.date || todayString();
+  $("f_status").value = KNOWN_STATUSES.includes(a.status) ? a.status : "Applied";
+  $("f_posid").value = a.posid || "";
+  $("f_portal").value = a.portal || "";
+  $("f_myLocation").value = a.myLocation || "";
+  $("f_jobLocation").value = a.jobLocation || "";
+  $("f_notes").value = a.notes || "";
+}
+function readForm() {
+  return {
+    client: $("f_client").value.trim(),
+    role: $("f_role").value,
+    title: $("f_title").value.trim(),
+    posid: $("f_posid").value.trim(),
+    resume: $("f_resume").value.trim(),
+    portal: $("f_portal").value.trim(),
+    myLocation: $("f_myLocation").value.trim(),
+    jobLocation: $("f_jobLocation").value.trim(),
+    date: $("f_date").value,
+    notes: $("f_notes").value.trim(),
+    status: $("f_status").value
+  };
+}
+function saveApplication() {
+  const record = readForm();
+  const msg = $("formMsg");
+  if (!record.client || !record.date) {
+    msg.textContent = "Client and date are required.";
+    msg.style.color = "var(--warning)";
+    return;
+  }
+  if (!parseDateOnly(record.date)) {
+    msg.textContent = "Enter a valid date.";
+    msg.style.color = "var(--warning)";
+    return;
+  }
+  const r = evaluate(record.client, record.role, record.resume, record.myLocation, editingId);
+  if (r.status === "block") {
+    const c = r.apps[0];
+    const ok = confirm(
+      `Duplicate-risk warning\n\nYou already applied to ${record.client} ${c.ago} day(s) ago. ` +
+      `This entry differs by: ${c.reasons.join(", ")}.\n\n` +
+      `Prior role: ${c.role || "-"}\nPrior resume: ${c.resume || "-"}\nPrior my location: ${c.myLocation || "-"}\n\n` +
+      `New role: ${record.role || "-"}\nNew resume: ${record.resume || "-"}\nNew my location: ${record.myLocation || "-"}\n\n` +
+      `It clears in ${r.clearsIn} day(s). Save it anyway?`
+    );
+    if (!ok) {
+      msg.textContent = "Cancelled. Not saved.";
+      msg.style.color = "var(--muted)";
+      return;
+    }
+  }
+  if (editingId) {
+    const a = apps.find(x => x.id === editingId);
+    if (a) Object.assign(a, record);
+  } else {
+    apps.push({ id: genId(), ...record });
+  }
+  save();
+  closeModal();
+  render();
+}
+function deleteCurrentEdit() {
+  if (!editingId) return;
+  const a = apps.find(x => x.id === editingId);
+  if (!a) return;
+  if (confirm(`Delete ${a.client} (${a.date})?`)) {
+    apps = apps.filter(x => x.id !== editingId);
+    save();
+    closeModal();
+    render();
+  }
+}
+function del(id) {
+  const a = apps.find(x => x.id === id);
+  if (!a) return;
+  if (confirm(`Delete ${a.client} (${a.date})?`)) {
+    apps = apps.filter(x => x.id !== id);
+    save();
+    render();
+  }
+}
+function updateStatus(id, value) {
+  const a = apps.find(x => x.id === id);
+  if (!a) return;
+  a.status = value;
+  save();
+  render();
+}
+
+function filteredRows(options = {}) {
+  const q = $("search").value.toLowerCase().trim();
+  const fRole = $("filterRole").value;
+  const fStatus = $("filterStatus").value;
+  let rows = apps.filter(a => {
+    if (fRole && a.role !== fRole) return false;
+    if (fStatus && a.status !== fStatus) return false;
+    if (q) {
+      const hay = [a.client, a.title, a.myLocation, a.jobLocation, a.portal, a.resume, a.notes, a.role, a.posid, a.date, a.status].join(" ").toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  if (!options.skipSort) {
+    rows.sort((x, y) => {
+      let a = (x[sort.key] || "").toString().toLowerCase();
+      let b = (y[sort.key] || "").toString().toLowerCase();
+      return a < b ? -sort.dir : a > b ? sort.dir : 0;
+    });
+  }
+  return rows;
+}
+function sortBy(key) {
+  if (sort.key === key) sort.dir *= -1;
+  else sort = { key, dir: 1 };
+  render();
+}
+function switchView(viewId) {
+  activeView = viewId;
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === viewId));
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.view === viewId));
+  render();
+}
+function render() {
+  $("windowDays").value = windowDays;
+  renderStats();
+  renderBoard();
+  renderLedger();
+  renderClients();
+}
+function renderStats() {
+  const uniqueClients = new Set(apps.map(a => normalize(a.client)).filter(Boolean)).size;
+  const inWindowClients = new Set(apps.filter(a => clientWindowState(a.client).withinWindow).map(a => normalize(a.client))).size;
+  const conflicts = new Set(apps.filter(a => clientWindowState(a.client).conflict).map(a => normalize(a.client))).size;
+  const active = apps.filter(a => !["Rejected", "Withdrawn"].includes(a.status)).length;
+  const interviews = apps.filter(a => a.status === "Interview").length;
+  const stats = [
+    [apps.length, "Total"],
+    [uniqueClients, "Unique clients"],
+    [active, "Active"],
+    [inWindowClients, `Inside ${windowDays}d`],
+    [conflicts, "Conflicts", conflicts ? "alert" : ""]
+  ];
+  $("stats").innerHTML = stats.map(s => `<div class="stat ${s[2] || ""}"><b>${s[0]}</b><span>${esc(s[1])}</span></div>`).join("");
+}
+function boardSortedRows() {
+  const rows = [...filteredRows({ skipSort: true })];
+  const mode = $("boardSort") ? $("boardSort").value : "dateDesc";
+  rows.sort((x, y) => {
+    const dx = x.date || "";
+    const dy = y.date || "";
+    const byDate = mode === "dateAsc" ? dx.localeCompare(dy) : dy.localeCompare(dx);
+    if (byDate !== 0) return byDate;
+    return (x.client || "").localeCompare(y.client || "");
+  });
+  return rows;
+}
+function renderBoard() {
+  const rows = boardSortedRows();
+  $("emptyBoard").style.display = rows.length ? "none" : "block";
+  const grouped = Object.fromEntries(KNOWN_STATUSES.map(s => [s, []]));
+  rows.forEach(a => (grouped[a.status] || grouped.Applied).push(a));
+
+  const selectedStatus = $("filterStatus") ? $("filterStatus").value : "";
+  let visibleStatuses;
+  if (selectedStatus) {
+    visibleStatuses = [selectedStatus];
+  } else {
+    visibleStatuses = ["Applied", "Screening"];
+    for (const status of KNOWN_STATUSES) {
+      if (!["Applied", "Screening"].includes(status) && grouped[status].length > 0) visibleStatuses.push(status);
+    }
+  }
+  visibleStatuses = visibleStatuses.filter((status, index, arr) => arr.indexOf(status) === index);
+
+  const board = $("board");
+  board.style.setProperty("--board-cols", String(Math.max(visibleStatuses.length, 1)));
+  board.className = `board ${visibleStatuses.length > 3 ? "board-scroll" : "board-fit"}`;
+  board.innerHTML = visibleStatuses.map(status => {
+    const cards = grouped[status] || [];
+    return `
+      <section class="board-status-section">
+        <div class="board-status-head"><span>${esc(status)}</span><span class="count">${cards.length}</span></div>
+        <div class="board-column-list">${cards.length ? cards.map(boardCard).join("") : `<div class="empty-col">No ${esc(status.toLowerCase())} applications yet.</div>`}</div>
+      </section>
+    `;
+  }).join("");
+}
+function boardCard(a) {
+  return `<article class="job-card">
+    <h3 class="clip-2">${esc(a.client || "Untitled client")}</h3>
+    <div class="title clip-2">${esc(displayTitle(a))}</div>
+    <div class="meta-row">
+      <span class="chip">${esc(a.date)}</span>
+      ${riskChip(a)}
+    </div>
+    <div class="link-stack" style="margin-top:10px;">${jobLink(a)}${resumeLink(a)}</div>
+    <div class="link-note clip" title="${esc(safeDecode(a.resume))}">${a.resume ? esc(shortResume(a.resume)) : ""}</div>
+    <div class="card-actions">
+      <button class="tiny-btn" onclick="openModal('${esc(a.id)}')">Edit</button>
+      <select class="status-select" onchange="updateStatus('${esc(a.id)}', this.value)">${KNOWN_STATUSES.map(s => `<option ${a.status === s ? "selected" : ""}>${s}</option>`).join("")}</select>
+    </div>
+  </article>`;
+}
+function ledgerSortedRows() {
+  const rows = [...filteredRows({ skipSort: true })];
+  const mode = $("ledgerSort") ? $("ledgerSort").value : "dateDesc";
+  rows.sort((x, y) => {
+    const dx = x.date || "";
+    const dy = y.date || "";
+    const byDate = mode === "dateAsc" ? dx.localeCompare(dy) : dy.localeCompare(dx);
+    if (byDate !== 0) return byDate;
+    return (x.client || "").localeCompare(y.client || "") || (x.title || "").localeCompare(y.title || "");
+  });
+  return rows;
+}
+function renderLedger() {
+  const rows = ledgerSortedRows();
+  $("emptyLedger").style.display = rows.length ? "none" : "block";
+  $("tbody").innerHTML = rows.map(a => `
+    <tr>
+      <td class="primary-cell"><b class="clip-2">${esc(a.client)}</b><span class="clip">${portalDisplay(a)}</span></td>
+      <td class="primary-cell"><b class="clip-2">${esc(displayTitle(a))}</b><span>${esc(a.role || "-")}</span></td>
+      <td>
+        <div class="link-stack">${jobLink(a)}${resumeLink(a)}</div>
+        <div class="link-note clip" title="${esc(safeDecode(a.resume))}">${a.resume ? esc(shortResume(a.resume)) : ""}</div>
+      </td>
+      <td class="mono date-cell">${esc(a.date || "-")}</td>
+      <td><select class="status-select" onchange="updateStatus('${esc(a.id)}', this.value)">${KNOWN_STATUSES.map(s => `<option ${a.status === s ? "selected" : ""}>${s}</option>`).join("")}</select></td>
+      <td>${riskChip(a)}</td>
+      <td><div class="row-actions"><button class="tiny-btn" onclick="openModal('${esc(a.id)}')">Edit</button><button class="tiny-btn" onclick="del('${esc(a.id)}')">Delete</button></div></td>
+    </tr>
+  `).join("");
+}
+function renderClients() {
+  const rows = filteredRows({ skipSort: true });
+  const map = new Map();
+  for (const a of rows) {
+    const key = normalize(a.client);
+    if (!key) continue;
+    const item = map.get(key) || { key, client: a.client, count: 0, last: "", apps: [] };
+    item.count += 1;
+    item.apps.push(a);
+    if (!item.last || a.date > item.last) item.last = a.date;
+    map.set(key, item);
+  }
+  const clientSortMode = $("clientSort") ? $("clientSort").value : "az";
+  const clients = [...map.values()].sort((a, b) => {
+    const byName = (a.client || "").localeCompare(b.client || "", undefined, { sensitivity: "base" });
+    if (byName !== 0) return clientSortMode === "za" ? -byName : byName;
+    return b.last.localeCompare(a.last);
+  });
+  $("emptyClients").style.display = clients.length ? "none" : "block";
+  $("clientGrid").innerHTML = clients.map(c => {
+    const state = clientWindowState(c.client);
+    const status = state.conflict ? `<span class="chip lock">Conflict</span>` : state.withinWindow ? `<span class="chip warn">Inside window</span>` : `<span class="chip clear">Clear</span>`;
+    const latest = [...c.apps].sort((a,b) => b.date.localeCompare(a.date))[0];
+    const active = selectedClientKey === c.key ? " active" : "";
+    return `<article class="client-card${active}" role="button" tabindex="0" onclick="openClientJobs('${esc(c.key)}')" onkeydown="clientCardKey(event, '${esc(c.key)}')">
+      <h3>${esc(c.client)}</h3>
+      <div class="meta-row">${status}<span class="chip">${c.count} app${c.count === 1 ? "" : "s"}</span></div>
+      <p>Last applied: <b>${esc(c.last || "-")}</b></p>
+      <p class="clip-2">${esc(latest.role || "-")}${latest.myLocation ? " | My: " + esc(shortLocation(latest.myLocation)) : ""}</p>
+      <div class="link-stack" style="margin-top:10px;">${jobLink(latest)}${resumeLink(latest)}</div>
+      <p class="client-click-hint">Click to view all jobs</p>
+    </article>`;
+  }).join("");
+  renderClientDetail();
+}
+function clientCardKey(event, key) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    openClientJobs(key);
+  }
+}
+function openClientJobs(key) {
+  selectedClientKey = key;
+  renderClients();
+  const detail = $("clientDetail");
+  if (detail && detail.style.display !== "none") detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+function closeClientJobs() {
+  selectedClientKey = "";
+  renderClients();
+}
+function renderClientDetail() {
+  const detail = $("clientDetail");
+  if (!detail) return;
+  if (!selectedClientKey) {
+    detail.style.display = "none";
+    detail.innerHTML = "";
+    return;
+  }
+  const list = apps
+    .filter(a => normalize(a.client) === selectedClientKey)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (!list.length) {
+    selectedClientKey = "";
+    detail.style.display = "none";
+    detail.innerHTML = "";
+    return;
+  }
+  const clientName = list[0].client || "Client";
+  detail.style.display = "block";
+  detail.innerHTML = `
+    <div class="client-detail-head">
+      <div>
+        <h3>${esc(clientName)}</h3>
+        <p>${list.length} saved application${list.length === 1 ? "" : "s"}, newest first</p>
+      </div>
+      <button class="btn secondary slim" onclick="closeClientJobs()">Close</button>
+    </div>
+    <div class="client-jobs">${list.map(clientJobCard).join("")}</div>`;
+}
+function clientJobCard(a) {
+  return `<article class="client-job-card">
+    <h4 class="clip-2">${esc(displayTitle(a))}</h4>
+    <p>${esc(a.role || "-")} | Applied ${esc(a.date || "-")} | ${esc(a.status || "-")}</p>
+    <div class="meta-row">${riskChip(a)}${a.posid ? `<span class="chip">ID ${esc(a.posid)}</span>` : ""}${a.jobLocation ? `<span class="chip">${esc(shortLocation(a.jobLocation))}</span>` : ""}</div>
+    <div class="link-stack" style="margin-top:10px;">${jobLink(a)}${resumeLink(a)}</div>
+    <div class="card-actions">
+      <button class="tiny-btn" onclick="openModal('${esc(a.id)}')">Edit</button>
+      <button class="tiny-btn" onclick="del('${esc(a.id)}')">Delete</button>
+    </div>
+  </article>`;
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), windowDays, applications: apps }, null, 2)], { type: "application/json" });
+  downloadBlob(blob, `application-guard-backup-${todayString()}.json`);
+}
+function importData(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      const imported = Array.isArray(data) ? data : data.applications;
+      if (!Array.isArray(imported)) throw new Error("Invalid backup file");
+      const ids = new Set();
+      apps = imported.map(d => sanitizeRecord(d, ids)).filter(Boolean);
+      if (data.windowDays && Number.isFinite(Number(data.windowDays))) {
+        windowDays = Number(data.windowDays);
+        localStorage.setItem(WINDOW_KEY, String(windowDays));
+      }
+      save();
+      render();
+      alert("Backup imported.");
+    } catch (err) {
+      alert("Could not import this file. Make sure it is a valid Application Guard JSON backup.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+  reader.readAsText(file);
+}
+function exportCSV() {
+  const headers = ["Client","Role","Position","Position ID","Resume","Portal","My location","Job posting location","Date","Status","Notes"];
+  const lines = [headers.join(",")];
+  for (const a of apps) {
+    lines.push([a.client, a.role, a.title, a.posid, a.resume, a.portal, a.myLocation, a.jobLocation, a.date, a.status, a.notes].map(csvEscape).join(","));
+  }
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  downloadBlob(blob, `application-guard-${todayString()}.csv`);
+}
+function csvEscape(v) {
+  const s = (v || "").toString().replace(/"/g, '""');
+  return /[",\n]/.test(s) ? `"${s}"` : s;
+}
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+init();
+</script>
+</body>
+</html>
